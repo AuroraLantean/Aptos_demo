@@ -3,11 +3,15 @@ module publisher::counter_tests {
     use std::signer;
     use std::unit_test;
     use std::vector;
-    //use std::string;
+		use std::debug::print;
+		use std::string::{utf8, String};
 		
 		use publisher::counter;
-		
-    fun get_account(): signer {
+
+		const DNOT_EXIST: u64 = 100;		
+		const DNOT_INCREASE: u64 = 101;		
+    
+		fun get_account(): signer {
         vector::pop_back(&mut unit_test::create_signers_for_testing(1))
     }
 
@@ -18,15 +22,27 @@ module publisher::counter_tests {
         aptos_framework::account::create_account_for_test(addr);
 
 				counter::increase(&account);
+				//let holder = counter::get_holder(addr);
+				let mesg = counter::get_mesg(addr);
+				print(&mesg);
 				assert!(
 					counter::get_count(addr) == 0,
-					0
+					DNOT_EXIST
+				);
+				assert!(
+					counter::get_mesg(addr) == utf8(b""),
+					DNOT_EXIST
 				);
 
 				counter::increase(&account);
 				assert!(
 					counter::get_count(addr) == 1,
-					0
+					DNOT_INCREASE
 				);
+				assert!(
+					counter::get_mesg(addr) == utf8(b"one"),
+					DNOT_EXIST
+				);
+
     }
 }
