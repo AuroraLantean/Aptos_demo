@@ -3,6 +3,7 @@ module publisher::counter {
 	use std::debug::print;
   use std::string::{utf8, String};
   //use std::error;
+	use std::timestamp; 
 
 	const ADDR1: address = @publisher;
 	const DNOT_EXIST: u64 = 100;		
@@ -40,4 +41,14 @@ module publisher::counter {
 			holder.mesg = utf8(b"one");
 		}
 	}
+	
+	public entry fun time() {
+      let t1=timestamp::now_microseconds();
+			print(&utf8(b"microseconds"));
+      print(&t1);
+      
+      let t2=timestamp::now_seconds();
+			print(&utf8(b"seconds"));
+      print(&t2);
+  }
 }

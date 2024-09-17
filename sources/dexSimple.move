@@ -1,4 +1,4 @@
-module publisher::Sample8 {
+module publisher::dex_simple {
 
     const E_NOTENOUGH: u64 = 0;
 

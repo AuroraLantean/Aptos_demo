@@ -22,6 +22,22 @@ OR
 `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`
 Then: `aptos --version`
 
+Install Move Prover
+According to https://aptos.dev/en/build/cli/setup-cli/install-move-prover
+
+Install Aptos CLI for Linux: `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`
+
+Download Aptos core from https://github.com/aptos-labs/aptos-core
+
+cd into the downloaded Aptos core
+`./scripts/dev_setup.sh -yp`
+
+if it says `error: externally-managed-environment`, ignore it...
+
+Then run the Move Prover:
+`aptos move prove --named-addresses publisher=default`
+
+
 ## Test
 ```
 	aptos move test

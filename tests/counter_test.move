@@ -5,7 +5,7 @@ module publisher::counter_tests {
     use std::vector;
 		use std::debug::print;
 		use std::string::{utf8, String};
-		
+		use std::timestamp; 
 		use publisher::counter;
 
 		const DNOT_EXIST: u64 = 100;		
@@ -43,6 +43,13 @@ module publisher::counter_tests {
 					counter::get_mesg(addr) == utf8(b"one"),
 					DNOT_EXIST
 				);
-
+    }
+		
+		#[test(framework = @0x1)]
+    fun testing(framework: signer)
+    {
+        // set up global time for testing purpose
+        timestamp::set_time_has_started_for_testing(&framework);   
+        counter::time(); 
     }
 }
