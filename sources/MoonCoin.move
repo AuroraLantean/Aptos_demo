@@ -7,8 +7,7 @@ module publisher::moon_coin {
             b"Moon Coin",
             b"MOON",
             6,
-            false,
+            false
         );
     }
 }
-

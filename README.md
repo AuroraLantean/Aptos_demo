@@ -17,7 +17,7 @@ On Aptos, the runtime will automatically detect the accounts that are written to
 #### Install Aptos CLI
 https://aptos.dev/en/build/cli/install-cli/install-cli-linux
 
-`aptos update`
+`aptos update aptos && aptos update movefmt`
 OR
 `curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3`
 Then: `aptos --version`
