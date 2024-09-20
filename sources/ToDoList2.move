@@ -6,7 +6,7 @@ module publisher::advanced_list {
     use std::signer;
     use std::vector;
     use std::string::{utf8, String};
-    use aptos_std::string_utils;
+    use aptos_std::string_utils::{format1, format2};
     use aptos_framework::object;
 
     /// Item list does not exist
@@ -36,25 +36,23 @@ module publisher::advanced_list {
     }
 
     //---------------==  Write functions
-    public entry fun init_list(signer1: &signer) acquires Settings {
-        let sender = signer::address_of(signer1);
+    public entry fun init_list(signr: &signer) acquires Settings {
+        let sender = signer::address_of(signr);
         let counter =
             if (exists<Settings>(sender)) {
                 let settings = borrow_global<Settings>(sender);
                 settings.counter
             } else {
                 let settings = Settings { counter: 0 };
-                // store the Settings resource directly under the signer1
-                move_to(signer1, settings);
+                // store the Settings resource directly under the signr
+                move_to(signr, settings);
                 0
             };
-        // create a new object to hold the item list, use the contract_addr_counter as seed
-        let obj = object::create_named_object(
-            signer1, make_seed(counter)
-        );
+        // maker a new object to hold the item list, use the contract_addr_counter as seed
+        let obj = object::create_named_object(signr, make_seed(counter));
         let obj_signer = object::generate_signer(&obj);
         let list = List { owner: sender, items: vector::empty() };
-        // store the List resource under the newly created object
+        // write function to store the List in the new object
         move_to(&obj_signer, list);
         // increment the counter
         let settings = borrow_global_mut<Settings>(sender);
@@ -62,28 +60,24 @@ module publisher::advanced_list {
     }
 
     public entry fun add_item(
-        signer1: &signer, list_idx: u64, content: String
+        signr: &signer, list_idx: u64, content: String
     ) acquires List {
-        let sender = signer::address_of(signer1);
-        let obj_addr = object::create_object_address(
-            &sender, make_seed(list_idx)
-        );
-        assert_user_has_list(obj_addr);
+        let sender = signer::address_of(signr);
+        let obj_addr = object::create_object_address(&sender, make_seed(list_idx));
+        assert_list_obj_exists(obj_addr);
         let list = borrow_global_mut<List>(obj_addr);
         let new_item = Item { content, completed: false };
         vector::push_back(&mut list.items, new_item);
     }
 
     public entry fun complete_item(
-        signer1: &signer, list_idx: u64, item_idx: u64
+        signr: &signer, list_idx: u64, item_idx: u64
     ) acquires List {
-        let sender = signer::address_of(signer1);
-        let obj_addr = object::create_object_address(
-            &sender, make_seed(list_idx)
-        );
-        assert_user_has_list(obj_addr);
+        let sender = signer::address_of(signr);
+        let obj_addr = object::create_object_address(&sender, make_seed(list_idx));
+        assert_list_obj_exists(obj_addr);
         let list = borrow_global_mut<List>(obj_addr);
-        assert_item_id_valid(list, item_idx);
+        assert_item_idx_valid(list, item_idx);
         let item = vector::borrow_mut(&mut list.items, item_idx);
         assert!(item.completed == false, E_ITEM_ALREADY_COMPLETED);
         item.completed = true;
@@ -113,7 +107,7 @@ module publisher::advanced_list {
     #[view]
     public fun get_list(sender: address, list_idx: u64): (address, u64) acquires List {
         let obj_addr = get_obj_addr(sender, list_idx);
-        assert_user_has_list(obj_addr);
+        assert_list_obj_exists(obj_addr);
         let list = borrow_global<List>(obj_addr);
         (list.owner, vector::length(&list.items))
     }
@@ -128,147 +122,145 @@ module publisher::advanced_list {
     public fun get_item(sender: address, list_idx: u64, item_idx: u64): (String, bool) acquires List {
         let obj_addr = get_obj_addr(sender, list_idx);
 
-        assert_user_has_list(obj_addr);
+        assert_list_obj_exists(obj_addr);
 
         let list = borrow_global<List>(obj_addr);
 
-        assert!(item_idx < vector::length(&list.items), E_ITEM_DOSE_NOT_EXIST);
+				assert_item_idx_valid(list, item_idx);
+        //assert!(item_idx < vector::length(&list.items), E_ITEM_DOSE_NOT_EXIST);
 
         let item = vector::borrow(&list.items, item_idx);
         (item.content, item.completed)
     }
 
     //---------------== Helper Functions
-    fun assert_user_has_list(user_addr: address) {
+    fun assert_list_obj_exists(obj_addr: address) {
         assert!(
-            exists<List>(user_addr),
-            E_LIST_DOSE_NOT_EXIST
+            exists<List>(obj_addr), E_LIST_DOSE_NOT_EXIST
         );
     }
 
-    fun assert_item_id_valid(list: &List, item_id: u64) {
+    fun assert_item_idx_valid(list: &List, item_idx: u64) {
         assert!(
-            item_id < vector::length(&list.items),
+            item_idx < vector::length(&list.items),
             E_ITEM_DOSE_NOT_EXIST
         );
     }
 
     fun get_obj(sender: address, list_idx: u64): object::Object<List> {
-        let addr = get_obj_addr(sender, list_idx);
-        object::address_to_object(addr)
+        let obj_addr = get_obj_addr(sender, list_idx);
+        object::address_to_object(obj_addr)
     }
 
     fun make_seed(counter: u64): vector<u8> {
-        // The seed must be unique per item list creator
-        //Wwe add contract address as part of the seed so seed from 2 item list contract for same user would be different
-        bcs::to_bytes(&string_utils::format2(&b"{}_{}", @publisher, counter))
+        // The seed must be unique per item list maker
+        //We add contract address as part of the seed so seed from 2 item list contract for same user would be different
+        bcs::to_bytes(&format2(&b"{}_{}", @publisher, counter))
     }
 
     // --------------- Unit Tests
-
-    #[test_only]
-    use std::string;
     #[test_only]
     use aptos_framework::account;
-    #[test_only]
-    use aptos_std::debug;
 
-    #[test(admin = @0x100)]
-    public entry fun test_end_to_end(admin: signer) acquires List, Settings {
-        let admin_addr = signer::address_of(&admin);
-        let list_idx = get_list_counter(admin_addr);
+    #[test(signr = @0x01)]
+    public entry fun list_end_to_end(signr: signer) acquires List, Settings {
+        let sender = signer::address_of(&signr);
+        let list_idx = get_list_counter(sender);
         assert!(list_idx == 0, 1);
-        account::create_account_for_test(admin_addr);
-        assert!(!has_list(admin_addr, list_idx), 2);
-        init_list(&admin);
-        assert!(get_list_counter(admin_addr) == 1, 3);
-        assert!(has_list(admin_addr, list_idx), 4);
+        account::create_account_for_test(sender);
+        assert!(!has_list(sender, list_idx), 2);
+        init_list(&signr);
+        assert!(get_list_counter(sender) == 1, 3);
+        assert!(has_list(sender, list_idx), 4);
 
-        add_item(&admin, list_idx, string::utf8(b"New Item"));
-        let (list_owner, list_length) = get_list(admin_addr, list_idx);
-        debug::print(&string_utils::format1(&b"list_owner: {}", list_owner));
-        debug::print(&string_utils::format1(&b"list_length: {}", list_length));
-        assert!(list_owner == admin_addr, 5);
+        add_item(&signr, list_idx, utf8(b"New Item"));
+        let (list_owner, list_length) = get_list(sender, list_idx);
+        print(&format1(&b"list_owner: {}", list_owner));
+        print(&format1(&b"list_length: {}", list_length));
+        assert!(list_owner == sender, 5);
         assert!(list_length == 1, 6);
 
-        let (content, completed) = get_item(admin_addr, list_idx, 0);
-        debug::print(&string_utils::format1(&b"content: {}", content));
-        debug::print(&string_utils::format1(&b"completed: {}", completed));
+        let (content, completed) = get_item(sender, list_idx, 0);
+        print(&format1(&b"content: {}", content));
+        print(&format1(&b"completed: {}", completed));
+        assert!(content == utf8(b"New Item"), 8);
         assert!(!completed, 7);
-        assert!(content == string::utf8(b"New Item"), 8);
 
-        complete_item(&admin, list_idx, 0);
-        let (_content, completed) = get_item(admin_addr, list_idx, 0);
-        debug::print(&string_utils::format1(&b"completed: {}", completed));
+        complete_item(&signr, list_idx, 0);
+        let (_content, completed) = get_item(sender, list_idx, 0);
+        print(&format1(&b"completed: {}", completed));
         assert!(completed, 9);
     }
 
-    #[test(admin = @0x100)]
-    public entry fun test_end_to_end_2_lists(admin: signer) acquires List, Settings {
-        let admin_addr = signer::address_of(&admin);
-        init_list(&admin);
-        let list1_idx = get_list_counter(admin_addr) - 1;
-        init_list(&admin);
-        let list2_idx = get_list_counter(admin_addr) - 1;
+    #[test(signr = @0x01)]
+    public entry fun list_end_to_end_2_lists(signr: signer) acquires List, Settings {
+        let sender = signer::address_of(&signr);
+        init_list(&signr);
+        let list1_idx = get_list_counter(sender) - 1;
+				print(&format1(&b"list1_idx: {}", list1_idx));
 
-        add_item(&admin, list1_idx, string::utf8(b"New Item"));
-        let (list_owner, list_length) = get_list(admin_addr, list1_idx);
-        assert!(list_owner == admin_addr, 1);
+        init_list(&signr);
+        let list2_idx = get_list_counter(sender) - 1;
+				print(&format1(&b"list2_idx: {}", list2_idx));
+
+        add_item(&signr, list1_idx, utf8(b"New Item"));
+        let (list_owner, list_length) = get_list(sender, list1_idx);
+        assert!(list_owner == sender, 1);
         assert!(list_length == 1, 2);
 
-        let (content, completed) = get_item(admin_addr, list1_idx, 0);
+        let (content, completed) = get_item(sender, list1_idx, 0);
         assert!(!completed, 3);
-        assert!(content == string::utf8(b"New Item"), 4);
+        assert!(content == utf8(b"New Item"), 4);
 
-        complete_item(&admin, list1_idx, 0);
-        let (_content, completed) = get_item(admin_addr, list1_idx, 0);
+        complete_item(&signr, list1_idx, 0);
+        let (_content, completed) = get_item(sender, list1_idx, 0);
         assert!(completed, 5);
 
-        add_item(&admin, list2_idx, string::utf8(b"New Item"));
-        let (list_owner, list_length) = get_list(admin_addr, list2_idx);
-        assert!(list_owner == admin_addr, 6);
+        add_item(&signr, list2_idx, utf8(b"New Item"));
+        let (list_owner, list_length) = get_list(sender, list2_idx);
+        assert!(list_owner == sender, 6);
         assert!(list_length == 1, 7);
 
-        let (content, completed) = get_item(admin_addr, list2_idx, 0);
+        let (content, completed) = get_item(sender, list2_idx, 0);
         assert!(!completed, 8);
-        assert!(content == string::utf8(b"New Item"), 9);
+        assert!(content == utf8(b"New Item"), 9);
 
-        complete_item(&admin, list2_idx, 0);
-        let (_content, completed) = get_item(admin_addr, list2_idx, 0);
+        complete_item(&signr, list2_idx, 0);
+        let (_content, completed) = get_item(sender, list2_idx, 0);
         assert!(completed, 10);
     }
 
-    #[test(admin = @0x100)]
+    #[test(signr = @0x01)]
     #[expected_failure(abort_code = E_LIST_DOSE_NOT_EXIST, location = Self)]
-    public entry fun test_list_does_not_exist(admin: signer) acquires List, Settings {
-        let admin_addr = signer::address_of(&admin);
-        account::create_account_for_test(admin_addr);
-        let list_idx = get_list_counter(admin_addr);
-        // account cannot create item on a item list (that does not exist
-        add_item(&admin, list_idx, string::utf8(b"New Item"));
+    public entry fun list_does_not_exist(signr: signer) acquires List, Settings {
+        let sender = signer::address_of(&signr);
+        account::create_account_for_test(sender);
+        let list_idx = get_list_counter(sender);
+        // account cannot make item in list that does not exist
+        add_item(&signr, list_idx, utf8(b"New Item"));
     }
 
-    #[test(admin = @0x100)]
+    #[test(signr = @0x01)]
     #[expected_failure(abort_code = E_ITEM_DOSE_NOT_EXIST, location = Self)]
-    public entry fun test_item_does_not_exist(admin: signer) acquires List, Settings {
-        let admin_addr = signer::address_of(&admin);
-        account::create_account_for_test(admin_addr);
-        let list_idx = get_list_counter(admin_addr);
-        init_list(&admin);
+    public entry fun list_item_does_not_exist(signr: signer) acquires List, Settings {
+        let sender = signer::address_of(&signr);
+        account::create_account_for_test(sender);
+        let list_idx = get_list_counter(sender);
+        init_list(&signr);
         // can not complete item that does not exist
-        complete_item(&admin, list_idx, 1);
+        complete_item(&signr, list_idx, 1);
     }
 
-    #[test(admin = @0x100)]
+    #[test(signr = @0x01)]
     #[expected_failure(abort_code = E_ITEM_ALREADY_COMPLETED, location = Self)]
-    public entry fun test_item_already_completed(admin: signer) acquires List, Settings {
-        let admin_addr = signer::address_of(&admin);
-        account::create_account_for_test(admin_addr);
-        let list_idx = get_list_counter(admin_addr);
-        init_list(&admin);
-        add_item(&admin, list_idx, string::utf8(b"New Item"));
-        complete_item(&admin, list_idx, 0);
+    public entry fun list_item_already_completed(signr: signer) acquires List, Settings {
+        let sender = signer::address_of(&signr);
+        account::create_account_for_test(sender);
+        let list_idx = get_list_counter(sender);
+        init_list(&signr);
+        add_item(&signr, list_idx, utf8(b"New Item"));
+        complete_item(&signr, list_idx, 0);
         // can not complete item that is already completed
-        complete_item(&admin, list_idx, 0);
+        complete_item(&signr, list_idx, 0);
     }
 }
