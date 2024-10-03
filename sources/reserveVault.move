@@ -38,14 +38,28 @@ module publisher::reserve_vault {
         (borrow_global<Vault>(user).gold, borrow_global<Vault>(user).silver)
     }
 
-    fun read_balances(asset_bal: SimpleMap<String, u64>, grams: String) {
+    fun print_balcs(assets: SimpleMap<String, u64>, grams: String) {
         print(&grams);
         print(&utf8(b"UAE"));
-        print(simple_map::borrow(&mut asset_bal, &utf8(b"UAE")));
+        print(simple_map::borrow(&mut assets, &utf8(b"UAE")));
         print(&utf8(b"COL"));
-        print(simple_map::borrow(&mut asset_bal, &utf8(b"COL")));
+        print(simple_map::borrow(&mut assets, &utf8(b"COL")));
         print(&utf8(b"MEX"));
-        print(simple_map::borrow(&mut asset_bal, &utf8(b"MEX")));
+        print(simple_map::borrow(&mut assets, &utf8(b"MEX")));
+    }
+
+    fun get_client_balance(user: address, asset: u64) acquires Vault {
+        let (gold, silver) = get_vault(user);
+        if (asset == GOLD){
+            print_balcs(gold.g28, utf8(b"28 Grams"));
+            print_balcs(gold.g57, utf8(b"57 Grams"));
+            print_balcs(gold.g114, utf8(b"114 Grams"));
+        }
+        else {
+            print_balcs(silver.g28, utf8(b"28 Grams"));
+            print_balcs(silver.g57, utf8(b"57 Grams"));
+            print_balcs(silver.g114, utf8(b"114 Grams"));
+        }
     }
 
 
@@ -59,9 +73,9 @@ module publisher::reserve_vault {
         assert!(exists<Vault>(signer::address_of(&user1)) == true, 101);
         assert!(exists<Vault>(signer::address_of(&user2)) == true, 101);
 
-        add_metal(signer::address_of(&user1), utf8(b"UAE"), GOLD, 3, 57);
+        /*add_metal(signer::address_of(&user1), utf8(b"UAE"), GOLD, 3, 57);
         add_metal(signer::address_of(&user1), utf8(b"COL"), GOLD, 5, 28);
-        add_metal(signer::address_of(&user2), utf8(b"UAE"), SILVER, 6, 57);
+        add_metal(signer::address_of(&user2), utf8(b"UAE"), SILVER, 6, 57);*/
         get_client_balance(signer::address_of(&user1), GOLD);
         get_client_balance(signer::address_of(&user2), SILVER);
     }
