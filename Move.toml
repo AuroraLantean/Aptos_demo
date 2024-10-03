@@ -5,7 +5,7 @@ authors = []
 
 [addresses]
 publisher = "_"
-
+#std = "0x1"
 #[dev-addresses]
 #publisher = "de603e99e164aafa171f1d598473c5fa815d28d15df8934ac765137e536fb286"
 

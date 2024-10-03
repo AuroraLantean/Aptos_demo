@@ -1,14 +1,15 @@
 -include .env
 
-.PHONY: all clean compile remove prove test 
+.PHONY: all clean build remove prove test 
 #all targets in your Makefile which do not produce an output file with the same name as the target name should be PHONY.
 
 all: clean remove install update build
 
 clean :; rm -r build
 format :; movefmt
-compile :; aptos move compile --named-addresses publisher=default
+build :; aptos move compile --named-addresses publisher=default
 test :; aptos move test --named-addresses publisher=default
+test4 :; aptos move test -f reserve --named-addresses publisher=default
 test3 :; aptos move test -f list --named-addresses publisher=default
 publish :; aptos move publish --named-addresses publisher=default
 
