@@ -48,7 +48,7 @@ module publisher::reserve_vault {
         print(simple_map::borrow(&mut assets, &utf8(b"MEX")));
     }
 
-    fun get_client_balance(user: address, asset: u64) acquires Vault {
+    fun get_user_balance(user: address, asset: u64) acquires Vault {
         let (gold, silver) = get_vault(user);
         if (asset == GOLD){
             print_balcs(gold.g28, utf8(b"28 Grams"));
@@ -62,6 +62,34 @@ module publisher::reserve_vault {
         }
     }
 
+    fun update_balance(metal: &mut WeightLocation, bar_amt: u64, weight: u64, country: String): bool {
+        if (weight == 28){
+            let current = simple_map::borrow_mut(&mut metal.g28, &country);
+            *current = bar_amt + *current;
+            true
+        }
+        else if(weight == 57){
+            let current = simple_map::borrow_mut(&mut metal.g57, &country);
+            *current = bar_amt + *current;
+            true
+        }
+        else {
+            let current = simple_map::borrow_mut(&mut metal.g114, &country);
+            *current = bar_amt + *current;
+            true
+        }
+    }
+
+    fun add_metal(user: address, country: String, type: u64, bar_amt: u64, weight: u64): bool acquires Vault {
+        if (type == GOLD) {
+            let metal = &mut borrow_global_mut<Vault>(user).gold;
+            update_balance(metal, bar_amt, weight, country)
+        }
+        else {
+            let metal = &mut borrow_global_mut<Vault>(user).silver;
+            update_balance(metal, bar_amt, weight, country)
+        }
+    }
 
     #[test_only]
     use std::signer;
@@ -73,10 +101,13 @@ module publisher::reserve_vault {
         assert!(exists<Vault>(signer::address_of(&user1)) == true, 101);
         assert!(exists<Vault>(signer::address_of(&user2)) == true, 101);
 
-        /*add_metal(signer::address_of(&user1), utf8(b"UAE"), GOLD, 3, 57);
+        add_metal(signer::address_of(&user1), utf8(b"UAE"), GOLD, 3, 57);
         add_metal(signer::address_of(&user1), utf8(b"COL"), GOLD, 5, 28);
-        add_metal(signer::address_of(&user2), utf8(b"UAE"), SILVER, 6, 57);*/
-        get_client_balance(signer::address_of(&user1), GOLD);
-        get_client_balance(signer::address_of(&user2), SILVER);
+        add_metal(signer::address_of(&user2), utf8(b"UAE"), SILVER, 6, 114);
+				
+				print(&utf8(b"--------== User1 Gold"));
+        get_user_balance(signer::address_of(&user1), GOLD);
+				print(&utf8(b"--------== User2 Silver"));
+        get_user_balance(signer::address_of(&user2), SILVER);
     }
 }

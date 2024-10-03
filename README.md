@@ -40,5 +40,8 @@ Then run the Move Prover:
 
 ## Test
 ```
-	aptos move test
+	make test1
+	make test2
+	make test3
+	make test4
 ```
