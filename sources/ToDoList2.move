@@ -126,7 +126,7 @@ module publisher::advanced_list {
 
         let list = borrow_global<List>(obj_addr);
 
-				assert_item_idx_valid(list, item_idx);
+        assert_item_idx_valid(list, item_idx);
         //assert!(item_idx < vector::length(&list.items), E_ITEM_DOSE_NOT_EXIST);
 
         let item = vector::borrow(&list.items, item_idx);
@@ -135,9 +135,7 @@ module publisher::advanced_list {
 
     //---------------== Helper Functions
     fun assert_list_obj_exists(obj_addr: address) {
-        assert!(
-            exists<List>(obj_addr), E_LIST_DOSE_NOT_EXIST
-        );
+        assert!(exists<List>(obj_addr), E_LIST_DOSE_NOT_EXIST);
     }
 
     fun assert_item_idx_valid(list: &List, item_idx: u64) {
@@ -197,11 +195,11 @@ module publisher::advanced_list {
         let sender = signer::address_of(&signr);
         init_list(&signr);
         let list1_idx = get_list_counter(sender) - 1;
-				print(&format1(&b"list1_idx: {}", list1_idx));
+        print(&format1(&b"list1_idx: {}", list1_idx));
 
         init_list(&signr);
         let list2_idx = get_list_counter(sender) - 1;
-				print(&format1(&b"list2_idx: {}", list2_idx));
+        print(&format1(&b"list2_idx: {}", list2_idx));
 
         add_item(&signr, list1_idx, utf8(b"New Item"));
         let (list_owner, list_length) = get_list(sender, list1_idx);
