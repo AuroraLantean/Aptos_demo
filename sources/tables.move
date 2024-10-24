@@ -41,5 +41,38 @@ module publisher::table_demo {
     (tbl.beds, tbl.baths, tbl.sqm, tbl.location, tbl.price, tbl.available)
   }
 
+  #[test_only]
+  use std::debug::print;
+  #[test_only]
+  use std::string::utf8;
 
+  #[test(seller1 = @0x123, seller2 = @0x144)]
+  fun test_function(seller1: signer, seller2: signer) acquires SellerObj {
+    register_seller(&seller1);
+
+    let property = Property {
+      beds: 2,
+      baths: 2,
+      sqm: 110,
+      location: utf8(b"Santa Marta, Colombia"),
+      price: 120000,
+      available: true
+    };
+    list_property(&seller1, property);
+    let (_, _, _, location, _, _) = read_listing(seller1, 1);
+    print(&location);
+
+    register_seller(&seller2);
+    let property = Property {
+      beds: 3,
+      baths: 2,
+      sqm: 150,
+      location: utf8(b"Dubai, UAE"),
+      price: 300000,
+      available: false
+    };
+    list_property(&seller2, property);
+    let (_, _, _, location, _, _) = read_listing(seller2, 1);
+    print(&location);
+  }
 }
