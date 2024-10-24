@@ -1,0 +1,4 @@
+max_width = 90    # each line can have at most 90 characters
+indent_size = 2   # the indent is 4 spaces
+tab_spaces = 2    # each tab is identical to 4 spaces
+hard_tabs = false # when a tab is inserted, it will be automatically replaced by 4 spaces
