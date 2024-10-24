@@ -11,8 +11,10 @@ format :; aptos move fmt --config indent_size=2,tab_spaces=2
 prove :; aptos move prove
 build :; aptos move compile --named-addresses publisher=default
 test :; aptos move test --named-addresses publisher=default
-test4 :; aptos move test -f reserve --named-addresses publisher=default
-test3 :; aptos move test -f list --named-addresses publisher=default
+test_table :; aptos move test -f table --named-addresses publisher=default
+test_reserve :; aptos move test -f reserve --named-addresses publisher=default
+test_list :; aptos move test -f list --named-addresses publisher=default
+
 publish :; aptos move publish --named-addresses publisher=default
 
 addItem :; aptos move run --function-id "0x_publisher_address::advanced_list::add_item"
