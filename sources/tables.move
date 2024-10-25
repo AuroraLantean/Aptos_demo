@@ -33,7 +33,9 @@ module publisher::table_demo {
     seller_obj.prop_cindex = prop_cindex
   }
 
-  fun read_listing(signr: signer, prop_cindex: u64): (u16, u16, u16, String, u64, bool) acquires SellerObj {
+  fun read_listing(
+    signr: signer, prop_cindex: u64
+  ): (u16, u16, u16, String, u64, bool) acquires SellerObj {
     let sender = signer::address_of(&signr);
     assert!(exists<SellerObj>(sender), E_SELLER_NOTFOUND);
     let seller_obj = borrow_global<SellerObj>(sender);

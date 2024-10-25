@@ -23,18 +23,18 @@ module publisher::counter_tests {
 
     counter::increase(&account);
     //let holder = counter::get_holder(sender);
-    let mesg = counter::get_mesg(sender);
+    let mesg = counter::get_message(sender);
     print(&mesg);
     assert!(counter::get_count(sender) == 0, DNOT_EXIST);
-    assert!(counter::get_mesg(sender) == utf8(b""), DNOT_EXIST);
+    assert!(counter::get_message(sender) == utf8(b"initial"), DNOT_EXIST);
 
     counter::increase(&account);
     assert!(counter::get_count(sender) == 1, DNOT_INCREASE);
-    assert!(counter::get_mesg(sender) == utf8(b"one"), DNOT_EXIST);
+    assert!(counter::get_message(sender) == utf8(b"one"), DNOT_EXIST);
   }
 
   #[test(signr = @0x1)]
-  fun testing(signr: signer) {
+  fun test_time(signr: signer) {
     // set up global time for testing purpose
     timestamp::set_time_has_started_for_testing(&signr);
     counter::time();
