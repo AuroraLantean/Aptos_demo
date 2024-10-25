@@ -80,9 +80,9 @@ module publisher::counter {
     aptos_framework::account::create_account_for_test(addr);
     set_message(&signr, utf8(b"Hello Aptos!"));
 
-		let message_got = get_message(addr) == utf8(b"Hello Aptos!");
-		print(&utf8(b"message_got"));
-		print(&message_got);
+    let message_got = get_message(addr) == utf8(b"Hello Aptos!");
+    print(&utf8(b"message_got"));
+    print(&message_got);
     assert!(message_got, ENO_MESSAGE);
   }
 }
