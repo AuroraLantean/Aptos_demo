@@ -37,6 +37,18 @@ if it says `error: externally-managed-environment`, ignore it...
 Then run the Move Prover:
 `aptos move prove --named-addresses publisher=default`
 
+## Setup Account
+make a new CLI account: `aptos init`, which will generate a `.aptos` folder with config.yaml file. That yaml file contains your CLI private_key, public_key, and account. 
+
+Get some Testnet/Devnet Aptos via faucets:
+https://www.aptosfaucet.com/
+
+Explorer: https://explorer.aptoslabs.com
+
+After deploying/publishing your modules, go to https://explorer.aptoslabs.com/account/YOUR_CLI_WALLET , click on "modules" and click on the module you want on the left hand side.
+
+Deployment on Devnet: https://explorer.aptoslabs.com/account/0xde603e99e164aafa171f1d598473c5fa815d28d15df8934ac765137e536fb286/modules/code/fungible_asset?network=devnet
+
 
 ## Test
 ```
