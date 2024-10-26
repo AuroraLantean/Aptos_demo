@@ -79,8 +79,8 @@ module publisher::fungible_asset {
     fungible_asset::deposit_with_ref(&asset_ref.transfer_ref, to_wallet, bucket);
   }
 
-  /// This validates that the signer is the object's owner. 
-	inline fun authorized_borrow_refs(
+  /// This validates that the signer is the object's owner.
+  inline fun authorized_borrow_refs(
     owner: &signer, object: Object<Metadata>
   ): &ManagedFungibleAsset acquires ManagedFungibleAsset {
     assert!(
@@ -89,4 +89,32 @@ module publisher::fungible_asset {
     );
     borrow_global<ManagedFungibleAsset>(object::object_address(&object))
   }
+
+  public entry fun transfer(
+    admin: &signer, from: address, to: address, amount: u64
+  ) acquires ManagedFungibleAsset {
+    let asset = get_metadata_object();
+
+    let transfer_ref = &authorized_borrow_refs(admin, asset).transfer_ref;
+
+    let from_wallet = primary_fungible_store::primary_store(from, asset);
+
+    let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, asset);
+
+    fungible_asset::transfer_with_ref(transfer_ref, from_wallet, to_wallet, amount);
+  }
+
+  public entry fun burn(admin: &signer, from: address, amount: u64) acquires ManagedFungibleAsset {
+    let asset = get_metadata_object();
+
+    let burn_ref = &authorized_borrow_refs(admin, asset).burn_ref;
+
+    let from_wallet = primary_fungible_store::primary_store(from, asset);
+
+    fungible_asset::burn_from(burn_ref, from_wallet, amount);
+  }
+  //use aptos_std::string_utils::{format1, format2};
+  //#[test_only]
+  //use aptos_std::string_utils::format1;
+  //print(&format1(&b"list_owner: {}", list_owner));
 }

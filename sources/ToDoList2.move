@@ -2,11 +2,11 @@
 
 module publisher::advanced_list {
   use std::bcs;
-  use std::debug::print;
+  //use std::debug::print;
   use std::signer;
   use std::vector;
-  use std::string::{utf8, String};
-  use aptos_std::string_utils::{format1, format2};
+  use std::string::{String}; //{utf8, String};
+  use aptos_std::string_utils::format2;
   use aptos_framework::object;
 
   /// Item list does not exist
@@ -157,6 +157,12 @@ module publisher::advanced_list {
   }
 
   // --------------- Unit Tests
+  #[test_only]
+  use std::string::utf8;
+  #[test_only]
+  use aptos_std::string_utils::format1;
+  #[test_only]
+  use std::debug::print;
   #[test_only]
   use aptos_framework::account;
 
