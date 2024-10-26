@@ -7,7 +7,7 @@ all: clean remove install update build
 
 clean :; rm -r build
 #format :; movefmt
-format :; aptos move fmt --config indent_size=2,tab_spaces=2
+fmt :; aptos move fmt --config indent_size=2,tab_spaces=2
 prove :; aptos move prove -f counter
 
 build :; aptos move compile --named-addresses publisher=default
