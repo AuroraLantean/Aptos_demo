@@ -79,12 +79,12 @@ module publisher::fungible_asset {
     fungible_asset::deposit_with_ref(&asset_ref.transfer_ref, to_wallet, bucket);
   }
 
-  /// This validates that the signer is the object's owner.
+  /// to verify the signer is the object's admin.
   inline fun authorized_borrow_refs(
-    owner: &signer, object: Object<Metadata>
+    admin: &signer, object: Object<Metadata>
   ): &ManagedFungibleAsset acquires ManagedFungibleAsset {
     assert!(
-      object::is_owner(object, signer::address_of(owner)),
+      object::is_owner(object, signer::address_of(admin)),
       error::permission_denied(ENOT_OWNER)
     );
     borrow_global<ManagedFungibleAsset>(object::object_address(&object))
@@ -113,6 +113,41 @@ module publisher::fungible_asset {
 
     fungible_asset::burn_from(burn_ref, from_wallet, amount);
   }
+
+  public fun withdraw(
+    admin: &signer, amount: u64, from: address
+  ): FungibleAsset acquires ManagedFungibleAsset {
+    let asset = get_metadata_object();
+
+    let transfer_ref = &authorized_borrow_refs(admin, asset).transfer_ref;
+
+    let from_wallet = primary_fungible_store::primary_store(from, asset);
+
+    fungible_asset::withdraw_with_ref(transfer_ref, from_wallet, amount)
+  }
+
+  public fun deposit(admin: &signer, to: address, fa: FungibleAsset) acquires ManagedFungibleAsset {
+    let asset = get_metadata_object();
+
+    let transfer_ref = &authorized_borrow_refs(admin, asset).transfer_ref;
+
+    let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, asset);
+
+    fungible_asset::deposit_with_ref(transfer_ref, to_wallet, fa);
+  }
+
+  public entry fun freeze_unfreeze_account(
+    admin: &signer, target: address, boo: bool
+  ) acquires ManagedFungibleAsset {
+    let asset = get_metadata_object();
+
+    let transfer_ref = &authorized_borrow_refs(admin, asset).transfer_ref;
+
+    let wallet = primary_fungible_store::ensure_primary_store_exists(target, asset);
+
+    fungible_asset::set_frozen_flag(transfer_ref, wallet, boo);
+  }
+
   //use aptos_std::string_utils::{format1, format2};
   //#[test_only]
   //use aptos_std::string_utils::format1;
