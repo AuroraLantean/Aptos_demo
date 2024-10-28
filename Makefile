@@ -19,8 +19,10 @@ test_vector :; aptos move test -f vector --named-addresses publisher=default
 test_table :; aptos move test -f table --named-addresses publisher=default
 test_reserve :; aptos move test -f reserve --named-addresses publisher=default
 test_list :; aptos move test -f list --named-addresses publisher=default
+test_fungible_asset :; aptos move test -f fungible_asset --named-addresses publisher=default
 
 publish :; aptos move publish --named-addresses publisher=default # --skip-fetch-latest-git-deps
+# --save-metadata
 
 publisher=0xde603e99e164aafa171f1d598473c5fa815d28d15df8934ac765137e536fb286
 wallet1=0xa62889c74443d1a05af1472b581c138e3c28858eadfb5655a6216874d1b23ff4

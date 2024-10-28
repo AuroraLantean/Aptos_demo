@@ -12,7 +12,7 @@ module publisher::fungible_asset {
   };
   use aptos_framework::object::{Self, Object};
   use aptos_framework::primary_fungible_store;
-  use std::error;
+  //use std::error;
   use std::signer;
   use std::string::utf8;
   use std::option;
@@ -84,9 +84,8 @@ module publisher::fungible_asset {
     admin: &signer, object: Object<Metadata>
   ): &ManagedFungibleAsset acquires ManagedFungibleAsset {
     assert!(
-      object::is_owner(object, signer::address_of(admin)),
-      error::permission_denied(ENOT_OWNER)
-    );
+      object::is_owner(object, signer::address_of(admin)), ENOT_OWNER
+    );//error::permission_denied(
     borrow_global<ManagedFungibleAsset>(object::object_address(&object))
   }
 
@@ -152,4 +151,34 @@ module publisher::fungible_asset {
   //#[test_only]
   //use aptos_std::string_utils::format1;
   //print(&format1(&b"list_owner: {}", list_owner));
+
+  #[test(owner_sp = @publisher)]
+  fun test_fungible_asset1(owner_sp: &signer) acquires ManagedFungibleAsset {
+    init_module(owner_sp);
+    let owner = signer::address_of(owner_sp);
+    let user1 = @0xface;
+
+    mint(owner_sp, owner, 100);
+    let metadata = get_metadata_object();
+    assert!(primary_fungible_store::balance(owner, metadata) == 100, 4);
+
+    freeze_unfreeze_account(owner_sp, owner, true);
+    assert!(primary_fungible_store::is_frozen(owner, metadata), 5);
+
+    //admin overrides frozen account
+    transfer(owner_sp, owner, user1, 10);
+    assert!(primary_fungible_store::balance(user1, metadata) == 10, 6);
+
+    freeze_unfreeze_account(owner_sp, owner, false);
+    assert!(!primary_fungible_store::is_frozen(owner, metadata), 7);
+    burn(owner_sp, owner, 90);
+  }
+
+  #[test(owner_sp = @publisher, user1 = @0xface)]
+  #[expected_failure(abort_code = ENOT_OWNER)]
+  fun test_fungible_asset2(owner_sp: &signer, user1: &signer) acquires ManagedFungibleAsset {
+    init_module(owner_sp);
+    let owner = signer::address_of(owner_sp);
+    mint(user1, owner, 100);
+  }
 }

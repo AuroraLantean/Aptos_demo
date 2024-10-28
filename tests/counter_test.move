@@ -4,7 +4,7 @@ module publisher::counter_tests {
   use std::unit_test;
   use std::vector;
   use std::debug::print;
-  use std::string::{utf8};//String
+  use std::string::{utf8}; //String
   use std::timestamp;
   use publisher::counter;
 
