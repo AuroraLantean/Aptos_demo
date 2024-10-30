@@ -6,149 +6,144 @@ module publisher::multisig {
   use std::vector;
   //use std::option;
   //use std::error;
-  use aptos_framework::account;
+  use aptos_framework::account::new_event_handle;
   use aptos_framework::event;
   use aptos_framework::timestamp;
   use aptos_framework::simple_map::{Self, SimpleMap};
 
-  struct Document has store, drop, copy {
-    id: u64, //document id
+  struct Election has store, drop, copy {
+    id: u64, //election id
     content_hash: String,
     author: address,
-    signers: vector<address>,
-    signatures: vector<Signature>,
+    voters: vector<address>,
+    votes: vector<Vote>,
     is_completed: bool
   }
 
-  struct Signature has store, drop, copy {
+  struct Vote has store, drop, copy {
     signer: address,
     timestamp: u64
   }
 
-  struct GlobalDocumentStore has key {
-    documents: SimpleMap<u64, Document>,
-    document_counter: u64
+  struct VoteMapStore has key {
+    votes: SimpleMap<u64, Election>,
+    count: u64
   }
 
   // ----------- Events
-  struct AddDocumentEvent has drop, store {
-    document_id: u64,
+  struct AddElectionEvent has drop, store {
+    election_id: u64,
     author: address
   }
 
-  struct SignDocumentEvent has drop, store {
-    document_id: u64,
+  struct VoteEvent has drop, store {
+    election_id: u64,
     signer: address
   }
 
   // Define a structure to handle events
   struct EventStore has key {
-    add_document_events: event::EventHandle<AddDocumentEvent>,
-    sign_document_events: event::EventHandle<SignDocumentEvent>
+    add_election_events: event::EventHandle<AddElectionEvent>,
+    vote_events: event::EventHandle<VoteEvent>
   }
 
   // ----------- Error Code
-  const ENOT_OWNER: u64 = 1;
-  const ASSET_SYMBOL: vector<u8> = b"UNCN";
-
   // -----------
-  fun init_module(account: &signer) {
+  fun init_module(signr: &signer) {
     move_to(
-      account,
-      GlobalDocumentStore { documents: simple_map::create(), document_counter: 0 }
+      signr,
+      VoteMapStore { votes: simple_map::create(), count: 0 }
     );
     move_to(
-      account,
+      signr,
       EventStore {
-        add_document_events: account::new_event_handle<AddDocumentEvent>(account),
-        sign_document_events: account::new_event_handle<SignDocumentEvent>(account)
+        add_election_events: new_event_handle<AddElectionEvent>(signr),
+        vote_events: new_event_handle<VoteEvent>(signr)
       }
     );
   }
 
-  public entry fun add_document(
-    signr: &signer, content_hash: String, signers: vector<address>
-  ) acquires GlobalDocumentStore, EventStore {
+  public entry fun add_election(
+    signr: &signer, content_hash: String, voters: vector<address>
+  ) acquires VoteMapStore, EventStore {
 
     let author = std::signer::address_of(signr);
-    let store = borrow_global_mut<GlobalDocumentStore>(@publisher);
+    let store = borrow_global_mut<VoteMapStore>(@publisher);
 
     let event_store = borrow_global_mut<EventStore>(@publisher);
 
-    let document = Document {
-      id: store.document_counter,
+    let election = Election {
+      id: store.count,
       content_hash,
       author: author,
-      signers,
-      signatures: vector::empty<Signature>(),
+      voters,
+      votes: vector::empty<Vote>(),
       is_completed: false
     };
 
-    simple_map::add(&mut store.documents, store.document_counter, document);
+    simple_map::add(&mut store.votes, store.count, election);
 
     event::emit_event(
-      &mut event_store.add_document_events,
-      AddDocumentEvent { document_id: store.document_counter, author: author }
+      &mut event_store.add_election_events,
+      AddElectionEvent { election_id: store.count, author: author }
     );
-    store.document_counter = store.document_counter + 1;
+    store.count = store.count + 1;
   }
 
-  public entry fun sign_document(
-    signr: &signer, document_id: u64
-  ) acquires GlobalDocumentStore, EventStore {
+  public entry fun vote(signr: &signer, election_id: u64) acquires VoteMapStore, EventStore {
 
     let signd = signer::address_of(signr);
-    let store = borrow_global_mut<GlobalDocumentStore>(@publisher);
+    let store = borrow_global_mut<VoteMapStore>(@publisher);
     let event_store = borrow_global_mut<EventStore>(@publisher);
 
-    assert!(simple_map::contains_key(&store.documents, &document_id), 3);
+    assert!(simple_map::contains_key(&store.votes, &election_id), 3);
 
-    let document = simple_map::borrow_mut(&mut store.documents, &document_id);
-    assert!(!document.is_completed, 1);
-    assert!(vector::contains(&document.signers, &signd), 2); //from author
+    let election = simple_map::borrow_mut(&mut store.votes, &election_id);
+    assert!(!election.is_completed, 1);
+    assert!(vector::contains(&election.voters, &signd), 2); //signr is allowed to vote
 
-    let signature = Signature { signer: signd, timestamp: timestamp::now_microseconds() };
+    let vote = Vote { signer: signd, timestamp: timestamp::now_microseconds() };
 
-    // Add the new signature
-    vector::push_back(&mut document.signatures, signature);
+    // Add the new vote
+    vector::push_back(&mut election.votes, vote);
 
     event::emit_event(
-      &mut event_store.sign_document_events,
-      SignDocumentEvent { document_id, signer: signd }
+      &mut event_store.vote_events,
+      VoteEvent { election_id, signer: signd }
     );
 
-    if (vector::length(&document.signatures) == vector::length(&document.signers)) {
-      document.is_completed = true;
+    if (vector::length(&election.votes) == vector::length(&election.voters)) {
+      election.is_completed = true;
     }
   }
 
-  // Get a document by its ID
+  // Get a election by its ID
   #[view]
-  public fun get_document(document_id: u64): Document acquires GlobalDocumentStore {
-    let store = borrow_global<GlobalDocumentStore>(@publisher);
-    assert!(simple_map::contains_key(&store.documents, &document_id), 4);
+  public fun get_election(election_id: u64): Election acquires VoteMapStore {
+    let store = borrow_global<VoteMapStore>(@publisher);
+    assert!(simple_map::contains_key(&store.votes, &election_id), 4);
 
-    *simple_map::borrow(&store.documents, &document_id)
+    *simple_map::borrow(&store.votes, &election_id)
   }
 
   #[view]
-  public fun get_all_documents(): vector<Document> acquires GlobalDocumentStore {
-    let store = borrow_global<GlobalDocumentStore>(@publisher);
-    let all_documents = vector::empty<Document>();
+  public fun get_all_elections(): vector<Election> acquires VoteMapStore {
+    let store = borrow_global<VoteMapStore>(@publisher);
+    let docs = vector::empty<Election>();
     let i = 0;
 
-    while (i < store.document_counter) {
-      if (simple_map::contains_key(&store.documents, &i)) {
-        vector::push_back(&mut all_documents, *simple_map::borrow(&store.documents, &i));
+    while (i < store.count) {
+      if (simple_map::contains_key(&store.votes, &i)) {
+        vector::push_back(&mut docs, *simple_map::borrow(&store.votes, &i));
       };
       i = i + 1;
     };
-    all_documents
+    docs
   }
 
   #[view]
-  public fun get_document_count(): u64 acquires GlobalDocumentStore {
-    let store = borrow_global<GlobalDocumentStore>(@publisher);
-    store.document_counter
+  public fun get_election_count(): u64 acquires VoteMapStore {
+    let store = borrow_global<VoteMapStore>(@publisher);
+    store.count
   }
 }
