@@ -1,0 +1,3 @@
+module publisher::multisig {
+
+}
