@@ -92,7 +92,41 @@ module publisher::multisig {
     );
     store.document_counter = store.document_counter + 1;
   }
-  //sign_document function
+
+  public entry fun sign_document(
+    signr: &signer, document_id: u64
+  ) acquires GlobalDocumentStore, EventStore {
+
+    let signd = signer::address_of(signr);
+    let store = borrow_global_mut<GlobalDocumentStore>(@publisher);
+    let event_store = borrow_global_mut<EventStore>(@publisher);
+
+    assert!(simple_map::contains_key(&store.documents, &document_id), 3);
+
+    let document = simple_map::borrow_mut(&mut store.documents, &document_id);
+    assert!(!document.is_completed, 1);
+    assert!(vector::contains(&document.signers, &signd), 2);//from author
+
+    let signature = Signature {
+      signer: signd,
+      timestamp: timestamp::now_microseconds()
+    };
+
+    // Add the new signature
+    vector::push_back(&mut document.signatures, signature);
+
+    event::emit_event(
+      &mut event_store.sign_document_events,
+      SignDocumentEvent {
+        document_id,
+        signer: signd
+      }
+    );
+
+    if (vector::length(&document.signatures) == vector::length(&document.signers)) {
+      document.is_completed = true;
+    }
+  }
 
   //get_document function
 
