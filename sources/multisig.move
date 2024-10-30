@@ -41,10 +41,10 @@ module publisher::multisig {
     signer: address
   }
 
-// Define a structure to handle events
+  // Define a structure to handle events
   struct EventStore has key {
     add_document_events: event::EventHandle<AddDocumentEvent>,
-    sign_document_events: event::EventHandle<SignDocumentEvent>,  
+    sign_document_events: event::EventHandle<SignDocumentEvent>
   }
 
   // ----------- Error Code
@@ -57,22 +57,45 @@ module publisher::multisig {
       account,
       GlobalDocumentStore { documents: simple_map::create(), document_counter: 0 }
     );
-    move_to(account, EventStore {
-			add_document_events: account::new_event_handle<AddDocumentEvent>(account),
-			sign_document_events: account::new_event_handle<SignDocumentEvent>(account),
-    });
+    move_to(
+      account,
+      EventStore {
+        add_document_events: account::new_event_handle<AddDocumentEvent>(account),
+        sign_document_events: account::new_event_handle<SignDocumentEvent>(account)
+      }
+    );
   }
-	
-	
-	// public entry fun add_document(auther: &signer, content_hash: String, signers: vector<address>) acquires GlobalDocumentStore, EventStore {
-		
-	// }
-	
-	//sign_document function
-	
-	//get_document function 
-	
-	//get_all_documents function 
-	//get_total_document_number
-	
+
+  public entry fun add_document(
+    signr: &signer, content_hash: String, signers: vector<address>
+  ) acquires GlobalDocumentStore, EventStore {
+
+    let author = std::signer::address_of(signr);
+    let store = borrow_global_mut<GlobalDocumentStore>(@publisher);
+
+    let event_store = borrow_global_mut<EventStore>(@publisher);
+
+    let document = Document {
+      id: store.document_counter,
+      content_hash,
+      author: author,
+      signers,
+      signatures: vector::empty<Signature>(),
+      is_completed: false
+    };
+
+    simple_map::add(&mut store.documents, store.document_counter, document);
+
+    event::emit_event(
+      &mut event_store.add_document_events,
+      AddDocumentEvent { document_id: store.document_counter, author: author }
+    );
+    store.document_counter = store.document_counter + 1;
+  }
+  //sign_document function
+
+  //get_document function
+
+  //get_all_documents function
+  //get_total_document_number
 }

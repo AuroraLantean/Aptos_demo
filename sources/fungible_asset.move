@@ -27,7 +27,7 @@ module publisher::fungible_asset {
     mint_ref: MintRef,
     transfer_ref: TransferRef,
     burn_ref: BurnRef,
-		paused: bool,
+    paused: bool
   }
 
   fun init_module(admin: &signer) {
@@ -56,7 +56,7 @@ module publisher::fungible_asset {
     let fa_ref_signer = object::generate_signer(constructor_ref);
     move_to(
       &fa_ref_signer,
-      FaStore { mint_ref, transfer_ref, burn_ref, paused: false, }
+      FaStore { mint_ref, transfer_ref, burn_ref, paused: false }
     )
   }
 
@@ -100,7 +100,12 @@ module publisher::fungible_asset {
 
     let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, asset);
 
-    fungible_asset::transfer_with_ref(&fa_store.transfer_ref, from_wallet, to_wallet, amount);
+    fungible_asset::transfer_with_ref(
+      &fa_store.transfer_ref,
+      from_wallet,
+      to_wallet,
+      amount
+    );
   }
 
   public entry fun burn(admin: &signer, from: address, amount: u64) acquires FaStore {
@@ -113,24 +118,24 @@ module publisher::fungible_asset {
     fungible_asset::burn_from(burn_ref, from_wallet, amount);
   }
 
-	//to ensure that the account is not denylisted
+  //to ensure that the account is not denylisted
   public fun withdraw(admin: &signer, amount: u64, from: address): FungibleAsset acquires FaStore {
     let asset = get_metadata_object();
 
     let fa_store = authorized_borrow_refs(admin, asset);
-		assert!(!fa_store.paused, EPAUSED);
-		
+    assert!(!fa_store.paused, EPAUSED);
+
     let from_wallet = primary_fungible_store::primary_store(from, asset);
 
     fungible_asset::withdraw_with_ref(&fa_store.transfer_ref, from_wallet, amount)
   }
 
-	//to ensure that the account is not denylisted
+  //to ensure that the account is not denylisted
   public fun deposit(admin: &signer, to: address, fa: FungibleAsset) acquires FaStore {
     let asset = get_metadata_object();
 
     let fa_store = authorized_borrow_refs(admin, asset);
-		assert!(!fa_store.paused, EPAUSED);
+    assert!(!fa_store.paused, EPAUSED);
 
     let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, asset);
 
@@ -184,17 +189,17 @@ module publisher::fungible_asset {
     mint(user1, owner, 100);
   }
 }
-    /*https://aptos.dev/en/build/guides/first-fungible-asset#step-43-understanding-the-management-primitives-of-facoin
-    // Override the deposit and withdraw functions which mean overriding transfer.
-    // This ensures all transfer will call withdraw and deposit functions in this module
-    // and perform the necessary checks.
-      let deposit = function_info::new_function_info(admin, string::utf8(b"fa_coin"), string::utf8(b"deposit"));
-      
-			let withdraw = function_info::new_function_info(admin, string::utf8(b"fa_coin"),         string::utf8(b"withdraw"));
+/*https://aptos.dev/en/build/guides/first-fungible-asset#step-43-understanding-the-management-primitives-of-facoin
+// Override the deposit and withdraw functions which mean overriding transfer.
+// This ensures all transfer will call withdraw and deposit functions in this module
+// and perform the necessary checks.
+  let deposit = function_info::new_function_info(admin, string::utf8(b"fa_coin"), string::utf8(b"deposit"));
 
-      dispatchable_fungible_asset::register_dispatch_functions(
-            constructor_ref,
-            option::some(withdraw),
-            option::some(deposit),
-            option::none(),
-      );*/
+  let withdraw = function_info::new_function_info(admin, string::utf8(b"fa_coin"),         string::utf8(b"withdraw"));
+
+  dispatchable_fungible_asset::register_dispatch_functions(
+        constructor_ref,
+        option::some(withdraw),
+        option::some(deposit),
+        option::none(),
+  );*/
