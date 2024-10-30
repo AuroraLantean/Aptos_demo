@@ -1,11 +1,11 @@
 //modified from MetaSchool https://github.com/0xmetaschool/contracts-management-aptosc5/blob/boilerplate_01/sources/HashSign.move
 
 module publisher::multisig {
-  //use std::error;
   use std::signer;
   use std::string::String; //{utf8, String};
   use std::vector;
-  use std::option;
+  //use std::option;
+  //use std::error;
   use aptos_framework::account;
   use aptos_framework::event;
   use aptos_framework::timestamp;
@@ -105,22 +105,16 @@ module publisher::multisig {
 
     let document = simple_map::borrow_mut(&mut store.documents, &document_id);
     assert!(!document.is_completed, 1);
-    assert!(vector::contains(&document.signers, &signd), 2);//from author
+    assert!(vector::contains(&document.signers, &signd), 2); //from author
 
-    let signature = Signature {
-      signer: signd,
-      timestamp: timestamp::now_microseconds()
-    };
+    let signature = Signature { signer: signd, timestamp: timestamp::now_microseconds() };
 
     // Add the new signature
     vector::push_back(&mut document.signatures, signature);
 
     event::emit_event(
       &mut event_store.sign_document_events,
-      SignDocumentEvent {
-        document_id,
-        signer: signd
-      }
+      SignDocumentEvent { document_id, signer: signd }
     );
 
     if (vector::length(&document.signatures) == vector::length(&document.signers)) {
@@ -128,8 +122,33 @@ module publisher::multisig {
     }
   }
 
-  //get_document function
+  // Get a document by its ID
+  #[view]
+  public fun get_document(document_id: u64): Document acquires GlobalDocumentStore {
+    let store = borrow_global<GlobalDocumentStore>(@publisher);
+    assert!(simple_map::contains_key(&store.documents, &document_id), 4);
 
-  //get_all_documents function
-  //get_total_document_number
+    *simple_map::borrow(&store.documents, &document_id)
+  }
+
+  #[view]
+  public fun get_all_documents(): vector<Document> acquires GlobalDocumentStore {
+    let store = borrow_global<GlobalDocumentStore>(@publisher);
+    let all_documents = vector::empty<Document>();
+    let i = 0;
+
+    while (i < store.document_counter) {
+      if (simple_map::contains_key(&store.documents, &i)) {
+        vector::push_back(&mut all_documents, *simple_map::borrow(&store.documents, &i));
+      };
+      i = i + 1;
+    };
+    all_documents
+  }
+
+  #[view]
+  public fun get_document_count(): u64 acquires GlobalDocumentStore {
+    let store = borrow_global<GlobalDocumentStore>(@publisher);
+    store.document_counter
+  }
 }

@@ -10,7 +10,7 @@ clean :; rm -r build
 fmt :; aptos move fmt --config indent_size=2,tab_spaces=2
 prove :; aptos move prove -f counter
 
-build :; aptos move compile --named-addresses publisher=default
+build :; aptos move compile --named-addresses publisher=default --skip-fetch-latest-git-deps
 test :; aptos move test --named-addresses publisher=default
 report :; aptos move test --coverage
 
