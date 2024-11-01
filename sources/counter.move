@@ -10,56 +10,50 @@ module publisher::counter {
   const DNOT_EXIST: u64 = 100;
   const ENO_MESSAGE: u64 = 0;
 
-  struct Holder has key {
-    count: u64,
+	//Simple User Object stored at user
+  struct User has key {
+    balc: u64,
     mesg: String
   }
 
   #[event]
-  struct MessageChange has drop, store {
+  struct MessageUpdated has drop, store {
     account: address,
     from_message: String,
     to_message: String
   }
 
-  public entry fun set_message(signr: &signer, message: String) acquires Holder {
+  public entry fun initupdate_user(
+    signr: &signer, number: u64, message: String
+  ) acquires User {
     let sender = signer::address_of(signr);
-    if (!exists<Holder>(sender)) {
-      move_to(signr, Holder { count: 0, mesg: message });
+    if (!exists<User>(sender)) {
+      move_to(signr, User { balc: number, mesg: message });
     } else {
-      let holder = borrow_global_mut<Holder>(sender);
+      let user = borrow_global_mut<User>(sender);
       event::emit(
-        MessageChange {
+        MessageUpdated {
           account: sender,
-          from_message: holder.mesg,
+          from_message: user.mesg,
           to_message: copy message
         }
       );
-      holder.mesg = message;
+      user.balc = number;
+      user.mesg = message;
     }
   }
 
   #[view]
-  public fun get_count(addr: address): u64 acquires Holder {
-    assert!(exists<Holder>(addr), DNOT_EXIST);
-    borrow_global<Holder>(addr).count
+  public fun get_user(addr: address): (u64, String) acquires User {
+    assert!(exists<User>(addr), DNOT_EXIST);
+    let user = borrow_global<User>(addr);
+    (user.balc, user.mesg)
   }
 
-  #[view]
-  public fun get_message(addr: address): String acquires Holder {
-    assert!(exists<Holder>(addr), DNOT_EXIST);
-    borrow_global<Holder>(addr).mesg
-  }
-
-  public entry fun increase(signr: &signer) acquires Holder {
-    let sender = signer::address_of(signr);
-    if (!exists<Holder>(sender)) {
-      move_to(signr, Holder { count: 0, mesg: utf8(b"initial") });
-    } else {
-      let holder = borrow_global_mut<Holder>(sender);
-      holder.count = holder.count + 1;
-      holder.mesg = utf8(b"one");
-    }
+  public entry fun remove_user(signr: &signer): u64 acquires User {
+    let user = move_from<User>(signer::address_of(signr));
+    let User { balc, mesg } = user;
+    balc
   }
 
   public entry fun time() {
@@ -73,16 +67,19 @@ module publisher::counter {
   }
 
   #[test(signr = @0x1)]
-  public entry fun sender_can_set_message(signr: signer) acquires Holder {
-    print(&utf8(b"sender_can_set_message..."));
+  public entry fun test_user_obj(signr: signer) acquires User {
+    print(&utf8(b"test_user_obj..."));
 
     let addr = signer::address_of(&signr);
     aptos_framework::account::create_account_for_test(addr);
-    set_message(&signr, utf8(b"Hello Aptos!"));
+    let balc = 100;
+    let mesg = utf8(b"Hello Aptos!");
+    initupdate_user(&signr, balc, mesg);
 
-    let message_got = get_message(addr) == utf8(b"Hello Aptos!");
+    let (balc1, mesg1) = get_user(addr);
     print(&utf8(b"message_got"));
-    print(&message_got);
-    assert!(message_got, ENO_MESSAGE);
+    //print(&out.balc);    print(&out.mesg);
+    assert!(balc1 == balc, 1);
+    assert!(mesg1 == mesg, 1);
   }
 }

@@ -20,17 +20,7 @@ module publisher::counter_tests {
     let account = get_account();
     let sender = signer::address_of(&account);
     aptos_framework::account::create_account_for_test(sender);
-
-    counter::increase(&account);
-    //let holder = counter::get_holder(sender);
-    let mesg = counter::get_message(sender);
-    print(&mesg);
-    assert!(counter::get_count(sender) == 0, DNOT_EXIST);
-    assert!(counter::get_message(sender) == utf8(b"initial"), DNOT_EXIST);
-
-    counter::increase(&account);
-    assert!(counter::get_count(sender) == 1, DNOT_INCREASE);
-    assert!(counter::get_message(sender) == utf8(b"one"), DNOT_EXIST);
+		//Your tests...
   }
 
   #[test(signr = @0x1)]

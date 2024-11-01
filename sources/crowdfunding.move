@@ -15,23 +15,23 @@ module publisher::crowdfunding {
   //   votes: SimpleMap<u64, Election>,
   //   count: u64
   // }
-	
-	/* Settings {}
-	User { id => contribution }
-	update_campaign()
-	claim_reward()
-	deposit()
-	withdraw()
-	*/
+
+  /* Settings {}
+  User { id => contribution }
+  update_campaign()
+  claim_reward()
+  deposit()
+  withdraw()
+  */
   struct Campaign has store, key {
     goal_amount: u64,
     current_amount: u64,
-    active: bool,
+    active: bool
   }
 
   /// Resource that holds all campaigns
   struct Campaigns has key {
-    campaigns: vector<Campaign>,
+    campaigns: vector<Campaign>
   }
 
   // ----------- Events
@@ -46,7 +46,7 @@ module publisher::crowdfunding {
         Campaigns {
           campaigns: vector::empty<Campaign>()
         }
-      );// Add a new campaign to the signr
+      ); // Add a new campaign to the signr
     };
     let campaigns = borrow_global_mut<Campaigns>(signrd);
 
@@ -68,7 +68,10 @@ module publisher::crowdfunding {
   }
 
   public entry fun contribute(
-    signr: &signer, campaign_owner: address, compain_id: u64, amount: u64
+    signr: &signer,
+    campaign_owner: address,
+    compain_id: u64,
+    amount: u64
   ) acquires Campaigns {
     // Transfer the AptosCoins from the contributor's signr to the campaign owner's signr
     coin::transfer<AptosCoin>(signr, campaign_owner, amount);
@@ -80,8 +83,8 @@ module publisher::crowdfunding {
 
     let campaigns = borrow_global_mut<Campaigns>(campaign_owner);
     let campaign = vector::borrow_mut(&mut campaigns.campaigns, compain_id);
-		
-    assert!(campaign.active, 403);// invactive
+
+    assert!(campaign.active, 403); // invactive
 
     campaign.current_amount = campaign.current_amount + amount;
 
