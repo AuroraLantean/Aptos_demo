@@ -3,8 +3,8 @@ module publisher::counter_tests {
   use std::signer;
   use std::unit_test;
   use std::vector;
-  use std::debug::print;
-  use std::string::{utf8}; //String
+  //use std::debug::print;
+  //use std::string::{utf8, String};
   use std::timestamp;
   use publisher::counter;
 
@@ -20,7 +20,7 @@ module publisher::counter_tests {
     let account = get_account();
     let sender = signer::address_of(&account);
     aptos_framework::account::create_account_for_test(sender);
-		//Your tests...
+    //Your tests...
   }
 
   #[test(signr = @0x1)]

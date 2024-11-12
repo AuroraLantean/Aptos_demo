@@ -24,6 +24,7 @@ test_reserve :; aptos move test -f reserve --named-addresses publisher=default
 test_list :; aptos move test -f list --named-addresses publisher=default
 test_fungible_asset :; aptos move test -f fungible_asset --named-addresses publisher=default
 
+deploy_to_object :; aptos move deploy-object --address-name default
 publish :; aptos move publish --named-addresses publisher=default # --skip-fetch-latest-git-deps
 # --save-metadata
 

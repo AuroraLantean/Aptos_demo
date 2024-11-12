@@ -14,7 +14,7 @@ On Aptos, the runtime will automatically detect the accounts that are written to
 
 
 ## Installation 
-#### Install Aptos CLI
+#### Install Aptos CLI v4.4.0
 https://aptos.dev/en/build/cli/install-cli/install-cli-linux
 
 `aptos update aptos && aptos update movefmt`

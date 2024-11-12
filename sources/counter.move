@@ -10,7 +10,7 @@ module publisher::counter {
   const DNOT_EXIST: u64 = 100;
   const ENO_MESSAGE: u64 = 0;
 
-	//Simple User Object stored at user
+  //Simple User Object stored at user
   struct User has key {
     balc: u64,
     mesg: String
@@ -50,10 +50,9 @@ module publisher::counter {
     (user.balc, user.mesg)
   }
 
-  public entry fun remove_user(signr: &signer): u64 acquires User {
+  public entry fun remove_user(signr: &signer) acquires User {
     let user = move_from<User>(signer::address_of(signr));
-    let User { balc, mesg } = user;
-    balc
+    let User { balc: _, mesg: _ } = user;
   }
 
   public entry fun time() {

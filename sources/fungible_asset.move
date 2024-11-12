@@ -1,6 +1,8 @@
+//https://aptos.dev/en/build/smart-contracts/fungible-asset
 //https://aptos.dev/en/build/guides/first-fungible-asset#step-433-managing-a-coin
 
-//https://github.com/aptos-labs/aptos-core/blob/50104947083b7c6b3eee9f764f411d3031334a9a/testsuite/module-publish/src/packages/framework_usecases/sources/fungible_asset_example.move#L62
+//https://github.com/aptos-labs/aptos-core/tree/main/aptos-move/move-examples/fungible_asset
+//https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/move-examples/fungible_asset/fa_coin/sources/FACoin.move
 module publisher::fungible_asset {
   use aptos_framework::fungible_asset::{
     Self,
@@ -16,6 +18,7 @@ module publisher::fungible_asset {
   use std::signer;
   use std::string::utf8;
   use std::option;
+  //use std::error;
 
   const ENOT_OWNER: u64 = 1;
   const EPAUSED: u64 = 2;
@@ -30,34 +33,67 @@ module publisher::fungible_asset {
     paused: bool
   }
 
+  // Make sure the `signer` is an address you own.
   fun init_module(admin: &signer) {
     //generate metadata object
-    let constructor_ref = &object::create_named_object(admin, ASSET_SYMBOL);
+    let constructor_ref = &object::create_named_object(admin, ASSET_SYMBOL); //or &create_sticky_object(admin)
+    //ConstructorRef cannot be stored and is destroyed by the end of the transaction used to create this Object, so any Refs must be generated during Object creation.
 
     primary_fungible_store::create_primary_store_enabled_fungible_asset(
       constructor_ref,
-      option::none(),
+      option::none(), /*maximum_supply: option<u128>*/
       utf8(b"Unicorn Coin"), /* name */
       utf8(ASSET_SYMBOL), /* symbol */
-      8, /* decimals */
+      8, /* decimals u8 */
       utf8(
         b"https://peach-tough-crayfish-991.mypinata.cloud/ipfs/QmWv9vn1QG2NJ1mFTsZ1sCr48zkmb9kmYQjYJnxSSmuMCj"
-      ), /* icon */
+      ), /* icon_uri */
       utf8(
         b"https://github.com/AuroraLantean/Aptos_demo"
-      ) /* project */
-    );
+      ) /* project_uri */
+    ); //Alternatively, you can use add_fungibility which uses the same parameters, but requires recipients to keep track of their FungibleStore addresses to keep track of how many units of your FA they have.
+    /*let converted_max_supply = if (option::is_some(&max_supply)) {
+        option::some(
+            option::extract(&mut max_supply) * math128::pow(10, (decimals as u128))
+        )
+    } else {
+        option::none()
+    };*/
 
-    // Generate mint/burn/transfer refs
-    let mint_ref = fungible_asset::generate_mint_ref(constructor_ref);
-    let burn_ref = fungible_asset::generate_burn_ref(constructor_ref);
-    let transfer_ref = fungible_asset::generate_transfer_ref(constructor_ref);
+    // Generate mint/burn/transfer refs. All Refs must be generated when the Object is created as that is the only time you can generate an Objects ConstructorRef.
+    let mint_ref = fungible_asset::generate_mint_ref(constructor_ref); // Used by fungible_asset::mint() and fungible_asset::mint_to()
+
+    let burn_ref = fungible_asset::generate_burn_ref(constructor_ref); // Used by fungible_asset::burn() and fungible_asset::burn_from()
+
+    let transfer_ref = fungible_asset::generate_transfer_ref(constructor_ref); // Used by fungible_asset::set_frozen_flag(), fungible_asset::withdraw_with_ref(),
+    // fungible_asset::deposit_with_ref(), and fungible_asset::transfer_with_ref().
 
     let fa_ref_signer = object::generate_signer(constructor_ref);
     move_to(
       &fa_ref_signer,
       FaStore { mint_ref, transfer_ref, burn_ref, paused: false }
     )
+    /*// Override the deposit and withdraw functions which mean overriding transfer.
+        // This ensures all transfer will call withdraw and deposit functions in this module
+        // and perform the necessary checks.
+        // This is OPTIONAL. It is an advanced feature and we don't NEED a global state to pause the FA coin.
+        let deposit = function_info::new_function_info(
+            admin,
+            string::utf8(b"fa_coin"),
+            string::utf8(b"deposit"),
+        );
+        let withdraw = function_info::new_function_info(
+            admin,
+            string::utf8(b"fa_coin"),
+            string::utf8(b"withdraw"),
+        );
+        dispatchable_fungible_asset::register_dispatch_functions(
+            constructor_ref,
+            option::some(withdraw),
+            option::some(deposit),
+            option::none(),
+        );
+    */
   }
 
   #[view]
@@ -66,8 +102,10 @@ module publisher::fungible_asset {
     object::address_to_object<Metadata>(metadata_addr)
   }
 
-  public entry fun mint_p(user: &signer, admin: &signer, amount: u64) acquires FaStore {
-    mint(admin, signer::address_of(user), amount);
+  #[view]
+  public fun get_balance(target: address): u64 {
+    let metadata = get_metadata_object();
+    primary_fungible_store::balance(target, metadata)
   }
 
   public entry fun mint(admin: &signer, to: address, amount: u64) acquires FaStore {
@@ -76,7 +114,10 @@ module publisher::fungible_asset {
 
     let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, metadata);
 
+    //let decimals = fungible_asset::decimals(metadata);
+
     let bucket = fungible_asset::mint(&fa_store.mint_ref, amount);
+    //primary_fungible_store::mint(&fa_store.mint_ref, to, amount * math64::pow(10, (decimals as u64)))
 
     fungible_asset::deposit_with_ref(&fa_store.transfer_ref, to_wallet, bucket);
   }
@@ -167,14 +208,14 @@ module publisher::fungible_asset {
 
     mint(owner_sp, owner, 100);
     let metadata = get_metadata_object();
-    assert!(primary_fungible_store::balance(owner, metadata) == 100, 4);
+    assert!(get_balance(owner) == 100, 4);
 
     freeze_unfreeze_account(owner_sp, owner, true);
     assert!(primary_fungible_store::is_frozen(owner, metadata), 5);
 
     //admin overrides frozen account
     transfer(owner_sp, owner, user1, 10);
-    assert!(primary_fungible_store::balance(user1, metadata) == 10, 6);
+    assert!(get_balance(user1) == 10, 6);
 
     freeze_unfreeze_account(owner_sp, owner, false);
     assert!(!primary_fungible_store::is_frozen(owner, metadata), 7);
@@ -189,7 +230,21 @@ module publisher::fungible_asset {
     mint(user1, owner, 100);
   }
 }
-/*https://aptos.dev/en/build/guides/first-fungible-asset#step-43-understanding-the-management-primitives-of-facoin
+/* Events
+struct Deposit has drop, store {
+    store: address,
+    amount: u64,
+}
+struct Withdraw has drop, store {
+    store: address,
+    amount: u64,
+}
+struct Frozen has drop, store {
+    store: address,
+    frozen: bool,
+}
+
+https://aptos.dev/en/build/guides/first-fungible-asset#step-43-understanding-the-management-primitives-of-facoin
 // Override the deposit and withdraw functions which mean overriding transfer.
 // This ensures all transfer will call withdraw and deposit functions in this module
 // and perform the necessary checks.
