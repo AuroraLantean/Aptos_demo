@@ -57,3 +57,19 @@ Deployment on Devnet: https://explorer.aptoslabs.com/account/0xde603e99e164aafa1
 	make test3
 	make test4
 ```
+
+## NFT
+https://aptos.dev/en/build/guides/your-first-nft
+```
+git clone https://github.com/aptos-labs/aptos-ts-sdk.git
+cd aptos-ts-sdk
+pnpm install
+pnpm build
+
+cd examples/typescript-esm
+pnpm install
+pnpm build
+pnpm run simple_digital_asset
+```
+https://github.com/aptos-labs/aptos-ts-sdk/blob/main/examples/typescript-esm/simple_digital_asset.ts
+

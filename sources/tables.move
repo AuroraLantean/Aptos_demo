@@ -19,12 +19,14 @@ module publisher::table_demo {
     prop_cindex: u64
   }
 
+  //make a new table as seller
   fun register_seller(signr: &signer) {
     let seller_obj = SellerObj { tbl: table::new(), prop_cindex: 0 };
     move_to(signr, seller_obj);
   }
 
-  fun list_property(signr: &signer, property: Property) acquires SellerObj {
+  //add items to table: add or update
+  fun upsert_property(signr: &signer, property: Property) acquires SellerObj {
     let sender = signer::address_of(signr);
     assert!(exists<SellerObj>(sender), E_SELLER_NOTFOUND);
     let seller_obj = borrow_global_mut<SellerObj>(sender);
@@ -33,6 +35,7 @@ module publisher::table_demo {
     seller_obj.prop_cindex = prop_cindex
   }
 
+  //read from tables: borrow_global(&table, key)
   fun read_listing(
     signr: signer, prop_cindex: u64
   ): (u16, u16, u16, String, u64, bool) acquires SellerObj {
@@ -41,6 +44,17 @@ module publisher::table_demo {
     let seller_obj = borrow_global<SellerObj>(sender);
     let tbl = table::borrow(&seller_obj.tbl, prop_cindex);
     (tbl.beds, tbl.baths, tbl.sqm, tbl.location, tbl.price, tbl.available)
+  }
+
+  //remove from tables: borrow_global_mut(&table, key)
+  fun remove_listing(signr: signer, prop_cindex: u64): bool acquires SellerObj {
+    let sender = signer::address_of(&signr);
+    assert!(exists<SellerObj>(sender), E_SELLER_NOTFOUND);
+    let seller_obj = borrow_global_mut<SellerObj>(sender);
+    if (table::contains(&seller_obj.tbl, prop_cindex)) {
+      let _removed_listing: Property = table::remove(&mut seller_obj.tbl, prop_cindex);
+      true
+    } else { false }
   }
 
   #[test_only]
@@ -60,7 +74,7 @@ module publisher::table_demo {
       price: 120000,
       available: true
     };
-    list_property(&seller1, property);
+    upsert_property(&seller1, property);
     let (_, _, _, location, _, _) = read_listing(seller1, 1);
     print(&location);
 
@@ -73,7 +87,7 @@ module publisher::table_demo {
       price: 300000,
       available: false
     };
-    list_property(&seller2, property);
+    upsert_property(&seller2, property);
     let (_, _, _, location, _, _) = read_listing(seller2, 1);
     print(&location);
   }
